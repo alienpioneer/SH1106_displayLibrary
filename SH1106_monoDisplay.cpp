@@ -1,60 +1,76 @@
 #include "SH1106_monoDisplay.h"
 
 SH1106_monoDisplay::SH1106_monoDisplay(byte DEV_ADDR){
-  Wire.begin();
-  _ADDR = DEV_ADDR;
+  i2c.begin();
+#ifdef MSP430
+  i2c.setModule(0);
+#endif
+  SH1106_ADDR = DEV_ADDR;
 }
 
+
+#ifdef WEMOS
 SH1106_monoDisplay::SH1106_monoDisplay(byte DEV_ADDR,uint8_t sda, uint8_t scl){
-  Wire.begin(sda,scl);
-  _ADDR = DEV_ADDR;
+  i2c.begin(sda,scl);
+  SH1106_ADDR = DEV_ADDR;
 }
+#endif
 
 
 void SH1106_monoDisplay::setPageAddress(uint8_t page){
   if (page < 8){
-    Wire.beginTransmission(_ADDR);      // send page
-    Wire.write(0x00);
-    Wire.write(0xB0+page);
-    Wire.endTransmission();
+    i2c.beginTransmission(SH1106_ADDR);      // send page
+    i2c.write(0x00);
+    i2c.write(0xB0+page);
+    i2c.endTransmission();
   }
 }
+
 
 void SH1106_monoDisplay::setColumnAddress(uint8_t col){
   uint8_t col_LOW = (uint8_t)(col&0x0F);
   uint8_t col_HIGH = (uint8_t)(((col>>4)&0x0F) + 0x10);
-  Wire.beginTransmission(_ADDR);        // send column
-  Wire.write(0x80);
-  Wire.write(col_LOW);
-  Wire.write(0x00);
-  Wire.write(col_HIGH);
-  Wire.endTransmission();
+  i2c.beginTransmission(SH1106_ADDR);        // send column
+  i2c.write(0x80);
+  i2c.write(col_LOW);
+  i2c.write(0x00);
+  i2c.write(col_HIGH);
+  i2c.endTransmission();
 }
+
 
 void SH1106_monoDisplay::writeRamData(byte data){
-  Wire.beginTransmission(_ADDR);  
-  Wire.write(0x40);
-  Wire.write(data);
-  Wire.endTransmission();
+  i2c.beginTransmission(SH1106_ADDR);  
+  i2c.write(0x40);
+  i2c.write(data);
+  i2c.endTransmission();
 }
 
-void SH1106_monoDisplay::sendCommand(byte command){                  //sends single command
-  Wire.beginTransmission(_ADDR);      
-  Wire.write(0x00);
-  Wire.write(command);
-  Wire.endTransmission();
+
+void SH1106_monoDisplay::sendCommand(byte command){
+  /// sends a single command
+  i2c.beginTransmission(SH1106_ADDR);      
+  i2c.write(0x00);
+  i2c.write(command);
+  i2c.endTransmission();
 }
+
 
 byte SH1106_monoDisplay::readRamData(){
-  Wire.beginTransmission(_ADDR);  
-  Wire.write(0x40);                   //01000000 - ram opperation command
-  Wire.endTransmission();
-  Wire.requestFrom(_ADDR,1);
-  //Wire.read();
-  byte data = Wire.read();            // read one byte
-  Wire.endTransmission();
+  byte data;
+  i2c.beginTransmission(SH1106_ADDR);  
+  i2c.write(0x40);                   //01000000 - ram opperation command
+  i2c.endTransmission();
+  i2c.requestFrom(SH1106_ADDR, (uint8_t)1);
+  if (i2c.available())
+  { 
+    // read one byte 
+    data = i2c.read();
+  }
+  //i2c.endTransmission();
   return data;
 }
+
 
 void SH1106_monoDisplay::startReadModify(){
   /* - enter read modify mode - only write commands are incremental
@@ -70,9 +86,11 @@ void SH1106_monoDisplay::startReadModify(){
   sendCommand(0xE0);
 }
 
+
 void SH1106_monoDisplay::endReadModify(){
   sendCommand(0xEE);
 }
+
 
 void SH1106_monoDisplay::writePixel(uint8_t x, uint8_t y){
   // write a pixel at the exact (x,y) position
@@ -90,22 +108,24 @@ void SH1106_monoDisplay::writePixel(uint8_t x, uint8_t y){
   endReadModify();
 }
 
+
 void SH1106_monoDisplay::setDC_ON_OFF(){
   // set DC pump on/off
-  Wire.beginTransmission(_ADDR);  
-  Wire.write(0x80);
-  Wire.write(0xAE);        // display off
-  Wire.write(0x80);
-  Wire.write(0xAD);        // DC-DC mode
-  Wire.write(0x80);
-  Wire.write(0x8B);      // DC off
+  i2c.beginTransmission(SH1106_ADDR);  
+  i2c.write(0x80);
+  i2c.write(0xAE);        // display off
+  i2c.write(0x80);
+  i2c.write(0xAD);        // DC-DC mode
+  i2c.write(0x80);
+  i2c.write(0x8B);      // DC off
   delay(20);
-  Wire.write(0x80);
-  Wire.write(0x8A);      // DC on
-  Wire.write(0x00);
-  Wire.write(0xAF);        // display on
-  Wire.endTransmission();
+  i2c.write(0x80);
+  i2c.write(0x8A);      // DC on
+  i2c.write(0x00);
+  i2c.write(0xAF);        // display on
+  i2c.endTransmission();
 }
+
 
 void SH1106_monoDisplay::setReverseDisplay(bool reverse){
   if (reverse == true)
@@ -114,12 +134,14 @@ void SH1106_monoDisplay::setReverseDisplay(bool reverse){
     sendCommand(0xA4);
 }
 
-void SH1106_monoDisplay::setDisplayOff(bool off){
-  if (off == true)
+
+void SH1106_monoDisplay::setDisplayOff(bool onOff){
+  if (onOff == true)
     sendCommand(0xAE);     // display off
   else
     sendCommand(0xAF);     // display on
 }
+
 
 void SH1106_monoDisplay::flipHorizontal(bool remap){
   //revert screen left->right
@@ -130,6 +152,7 @@ void SH1106_monoDisplay::flipHorizontal(bool remap){
     sendCommand(0xA0);
 }
 
+
 void SH1106_monoDisplay::flipVertical(bool flip){ 
   //revert screen left->right
       
@@ -139,11 +162,13 @@ void SH1106_monoDisplay::flipVertical(bool flip){
     sendCommand(0xC0);
 }
 
-void SH1106_monoDisplay::blinkDisplay(uint8_t del1ms, uint8_t del2ms){
+
+void SH1106_monoDisplay::blinkDisplay(uint8_t timeOn_ms, uint8_t timeOff_ms){
+  /// timeOn_ms time on in miliseconds
   setDisplayOff(true);
-  delay(del1ms);
+  delay(timeOn_ms);
   setDisplayOff(false);
-  delay(del2ms);
+  delay(timeOff_ms);
 }
 
 
@@ -164,6 +189,7 @@ void SH1106_monoDisplay::clearPage(uint8_t col, uint8_t page){
     writeRamData(0x00);
 }
 
+
 void SH1106_monoDisplay::clearRow(int8_t col, uint8_t page, uint8_t len){
   //clears one page row from the coordinated for the specified length
   
@@ -173,20 +199,20 @@ void SH1106_monoDisplay::clearRow(int8_t col, uint8_t page, uint8_t len){
     writeRamData(0x00);
 }
 
-void SH1106_monoDisplay::drawBar(uint8_t page, uint8_t col, uint8_t offset, uint8_t len, int del ){
+
+void SH1106_monoDisplay::drawBar(uint8_t page, uint8_t col, uint8_t offset, uint8_t len, int drawDelay ){
   // draw a progress bar with the specified delay
-  
   setPageAddress(page);
   setColumnAddress(col+offset);
   for(uint8_t j=0;j<len;j++){
     writeRamData(0xFF);
-    delay(del);
+    delay(drawDelay);
   }
 }
 
-void SH1106_monoDisplay::drawBar16(uint8_t page, uint8_t col, uint8_t len, int del ){
+
+void SH1106_monoDisplay::drawBar16(uint8_t page, uint8_t col, uint8_t len, int drawDelay ){
   // draw a progress bar on two pages (rows) with the specified delay
-  
   setPageAddress(page);
   setColumnAddress(col);
   for(uint8_t j=0;j<len;j++){
@@ -197,12 +223,14 @@ void SH1106_monoDisplay::drawBar16(uint8_t page, uint8_t col, uint8_t len, int d
     setColumnAddress(col);
     writeRamData(0xFF);
     col++;
-    delay(del);
+    delay(drawDelay);
   }
 }
 
+
 void SH1106_monoDisplay::drawText(uint8_t col, uint8_t page, String text){
-  uint8_t maxLen = text.length();       //drop end line character - \0
+  //drop end line character - "\0"
+  uint8_t maxLen = text.length();       
   //clearPage(page,col);
   setPageAddress(page);
   setColumnAddress(col);
@@ -212,8 +240,10 @@ void SH1106_monoDisplay::drawText(uint8_t col, uint8_t page, String text){
   }
 }
 
+
 void SH1106_monoDisplay::drawText16(uint8_t col, uint8_t page, String text){
-  uint8_t maxLen = text.length();   //drop end line character - \0
+  //drop end line character - "\0"
+  uint8_t maxLen = text.length();   
   uint8_t i=0;
   uint8_t j=0;
   uint8_t l=0;
@@ -235,15 +265,16 @@ void SH1106_monoDisplay::drawText16(uint8_t col, uint8_t page, String text){
   }
 }
 
+
 void SH1106_monoDisplay::drawImage(uint8_t col, uint8_t page, uint8_t width, uint8_t height,const byte* img ){
   // height is in bytes 
   // width is in bits
-
   uint8_t i=0;
   
-  for(uint8_t w=0; w<width ; w++){
-    for(uint8_t h =0; h<height ; h++){
-      
+  for(uint8_t w=0; w<width ; w++)
+  {
+    for(uint8_t h =0; h<height ; h++)
+    {
       setColumnAddress(col+w);
       setPageAddress(page-h);
       writeRamData(0x00); 
@@ -251,7 +282,6 @@ void SH1106_monoDisplay::drawImage(uint8_t col, uint8_t page, uint8_t width, uin
       setColumnAddress(col+w);
       setPageAddress(page-h);
       writeRamData(img[i]);
-      
       i++;
      }
   }
@@ -261,7 +291,7 @@ void SH1106_monoDisplay::drawImage(uint8_t col, uint8_t page, uint8_t width, uin
 void SH1106_monoDisplay::drawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1){
   // bresenham algorithm
   // works for vertical and horizontal and less than 45 -> m < 1
-  // to be improved
+  // TO BE IMPROVED
   
   uint8_t dx, dy, sx, sy, e2, err;
   dx = abs(x1 - x0);
