@@ -1,3 +1,7 @@
+#ifndef SH1106_monoDisplay_h
+#define SH1106_monoDisplay_h
+
+
 #pragma once
 #include <Wire.h>
 #include "lcdResources.h"
@@ -7,10 +11,6 @@
 #else
 #include <Arduino.h>
 #endif
-
-#ifndef SH1106_monoDisplay_h
-#define SH1106_monoDisplay_h
-
 
 class SH1106_monoDisplay{
   public:

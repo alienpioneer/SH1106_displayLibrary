@@ -57,7 +57,7 @@ void SH1106_monoDisplay::sendCommand(byte command){
 
 
 byte SH1106_monoDisplay::readRamData(){
-  byte data;
+  byte data = 0;
   i2c.beginTransmission(SH1106_ADDR);  
   i2c.write(0x40);                   //01000000 - ram opperation command
   i2c.endTransmission();
@@ -117,10 +117,10 @@ void SH1106_monoDisplay::setDC_ON_OFF(){
   i2c.write(0x80);
   i2c.write(0xAD);        // DC-DC mode
   i2c.write(0x80);
-  i2c.write(0x8B);      // DC off
+  i2c.write(0x8B);        // DC off
   delay(20);
   i2c.write(0x80);
-  i2c.write(0x8A);      // DC on
+  i2c.write(0x8A);        // DC on
   i2c.write(0x00);
   i2c.write(0xAF);        // display on
   i2c.endTransmission();
