@@ -38,6 +38,7 @@ class SH1106_monoDisplay{
     void drawText           (uint8_t col, uint8_t page, String text);
     void drawText16         (uint8_t col, uint8_t page, String text);
     void drawImage          (uint8_t col, uint8_t page, uint8_t width, uint8_t height,const byte* img);
+    void drawNumber         (uint8_t col, uint8_t page, int number);
     void drawLine           (uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
 
   private:
